@@ -9,7 +9,7 @@ sys.path.insert(0,str(ROOT/'tools'))
 from model import load,read,write,sha,compile_content
 from build import build
 from project import main,release_audit
-from media import run,executable,probe
+from media import run,executable,probe,transcode,pictures
 
 def clone(target):
     for folder in ['src','content','tools','docs','tests']:
@@ -60,6 +60,15 @@ class ContractTests(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which('ffmpeg') and shutil.which('ffprobe') and importlib.util.find_spec('PIL'),'FFmpeg and Pillow required for integration workflow')
 class WorkflowTests(unittest.TestCase):
+    def test_untagged_source_gets_bt709_tags(self):
+        # 新版 FFmpeg 不再可靠地应用 -color_trc 等输出参数；无标签源片也必须得到完整 BT.709 标签并能截图
+        (ROOT/'.qa').mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix='color-tags-',dir=ROOT/'.qa') as temp:
+            folder=Path(temp);source=folder/'untagged.mp4';keys=['colorSpace','colorRange','colorTransfer','colorPrimaries']
+            run([executable('ffmpeg'),'-v','error','-y','-f','lavfi','-i','color=c=blue:s=320x180:r=60:d=1','-c:v','libx264','-pix_fmt','yuv420p',str(source)])
+            self.assertEqual([probe(source)[k] for k in keys],[None]*4)
+            self.assertEqual([transcode(source,folder/'video.webm')[k] for k in keys],['bt709','tv','bt709','bt709'])
+            pictures(folder/'video.webm',folder,.5)
     def test_clean_copy_full_diy_workflow(self):
         (ROOT/'.qa').mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='全新目录 空格-',dir=ROOT/'.qa') as temp:

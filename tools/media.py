@@ -35,8 +35,9 @@ def transcode(source,destination,height=1080):
     matrix={'bt709':'bt709','bt470bg':'bt601','smpte170m':'bt601',None:'bt709','unknown':'bt709','unspecified':'bt709'}.get(metadata['colorSpace'])
     require(matrix is not None,'Unsupported input color matrix; convert to SDR BT.709 first.')
     value_range='pc' if metadata['colorRange']=='pc' else 'tv'
+    # 实测 FFmpeg 7.1.1/8.0 按滤镜输出帧的色彩属性设置编码器，忽略 -color_trc 等输出参数；用 setparams 在帧上写明 BT.709，输出参数留给旧版
     run([executable('ffmpeg'),'-v','error','-nostdin','-y','-i',str(source),'-map','0:v:0','-map','0:a?',
-         '-vf',f"scale=w='min({width},iw)':h='min({height},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos:in_color_matrix={matrix}:in_range={value_range}:out_color_matrix=bt709:out_range=tv,fps=60",
+         '-vf',f"scale=w='min({width},iw)':h='min({height},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2:flags=lanczos:in_color_matrix={matrix}:in_range={value_range}:out_color_matrix=bt709:out_range=tv,fps=60,setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709",
          '-c:v','libvpx-vp9','-crf','25','-b:v','0','-deadline','good','-cpu-used','5','-row-mt','1','-threads','4',
          '-pix_fmt','yuv420p','-colorspace','bt709','-color_range','tv','-color_trc','bt709','-color_primaries','bt709',
          '-c:a','libopus','-b:a','128k','-map_metadata','-1',str(destination)])
