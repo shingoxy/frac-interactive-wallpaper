@@ -1,11 +1,14 @@
 __pycache__/
 *.pyc
+.venv/
 node_modules/
 preview/
 dist/
 .qa/
 .history/
 .tools/
+/media-prep/
+/local/
 .DS_Store
 Thumbs.db
 # Four selected source samples are intentionally tracked; do not ignore content/.
